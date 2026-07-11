@@ -1,0 +1,30 @@
+repos:
+  # Secret scanning — runs first
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.27.2
+    hooks:
+      - id: gitleaks
+
+  # Official Go tools
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+      - id: go-vet
+      - id: golangci-lint
+
+  # Go SAST
+  - repo: https://github.com/securego/gosec
+    rev: v2.22.4
+    hooks:
+      - id: gosec
+
+  # Vulnerability scanning (requires snyk CLI)
+  # Install: npm install -g snyk
+  - repo: local
+    hooks:
+      - id: snyk
+        name: snyk
+        entry: snyk test
+        language: system
+        pass_filenames: false
