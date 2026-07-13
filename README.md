@@ -72,4 +72,4 @@ See [docs/dev.md](docs/dev.md) for full developer setup.
 
 ## License
 
-MIT
+Apache 2.0
