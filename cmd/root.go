@@ -1,4 +1,4 @@
-// Package cmd wires the ais CLI using Cobra.
+// Package cmd wires the mental CLI using Cobra.
 // Commands are thin — all logic lives in internal/.
 package cmd
 
@@ -9,12 +9,13 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "ais",
-	Short: "AI session manager for multiple assistants",
-	Long: `ais — search, export, and manage sessions
-across AI assistants (opencode, claude, gemini, ...).
+	Use:   "mental",
+	Short: "Cross-session memory and AI session manager",
+	Long: `mental — manage memory across LLM sessions and search,
+export, and manage AI assistant sessions
+(opencode, claude, gemini, ...).
 
-Docs: https://github.com/mrbrandao/ais`,
+Docs: https://github.com/mrbrandao/mental`,
 }
 
 // Execute runs the root command.

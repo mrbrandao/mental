@@ -1,4 +1,4 @@
-module github.com/mrbrandao/ais
+module github.com/mrbrandao/mental
 
 go 1.25.1
 

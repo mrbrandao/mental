@@ -8,19 +8,19 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/mrbrandao/ais/internal/model"
-	"github.com/mrbrandao/ais/internal/output"
-	"github.com/mrbrandao/ais/internal/provider/opencode"
+	"github.com/mrbrandao/mental/internal/model"
+	"github.com/mrbrandao/mental/internal/output"
+	"github.com/mrbrandao/mental/internal/provider/opencode"
 )
 
 var searchCmd = &cobra.Command{
 	Use:   "search",
 	Short: "Search sessions for an AI assistant",
-	Example: `  ais search -a opencode -s "git-release"
-  ais search -a opencode -s "foo" -s "bar"
-  ais search -a opencode --type=deep --branch main
-  ais search -a opencode --dir /path/to/project
-  ais search -a opencode --output json`,
+	Example: `  mental search -a opencode -s "git-release"
+  mental search -a opencode -s "foo" -s "bar"
+  mental search -a opencode --type=deep --branch main
+  mental search -a opencode --dir /path/to/project
+  mental search -a opencode --output json`,
 	RunE: runSearch,
 }
 

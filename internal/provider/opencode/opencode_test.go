@@ -10,8 +10,8 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/mrbrandao/ais/internal/model"
-	"github.com/mrbrandao/ais/internal/provider/opencode"
+	"github.com/mrbrandao/mental/internal/model"
+	"github.com/mrbrandao/mental/internal/provider/opencode"
 )
 
 // seedDB creates a minimal OpenCode-shaped SQLite DB

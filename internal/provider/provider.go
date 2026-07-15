@@ -5,7 +5,7 @@ package provider
 import (
 	"context"
 
-	"github.com/mrbrandao/ais/internal/model"
+	"github.com/mrbrandao/mental/internal/model"
 )
 
 // Provider is the contract for an AI assistant

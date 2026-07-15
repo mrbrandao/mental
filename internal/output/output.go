@@ -10,7 +10,7 @@ import (
 
 	"github.com/pterm/pterm"
 
-	"github.com/mrbrandao/ais/internal/model"
+	"github.com/mrbrandao/mental/internal/model"
 )
 
 // Formatter renders a slice of sessions to stdout.
