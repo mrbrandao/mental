@@ -21,6 +21,29 @@ jobs:
         with:
           go-version-file: go.mod
 
+      # Update CHANGELOG.md using git-cliff (Keep a Changelog format).
+      # The updated file is committed back to the repo before goreleaser runs.
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+
+      - name: Update CHANGELOG.md
+        run: git-cliff --tag ${{ github.ref_name }} -o CHANGELOG.md
+
+      - name: Commit CHANGELOG.md
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git diff --cached --quiet || \
+            git commit -m \
+              "chore: update CHANGELOG.md for ${{ github.ref_name }}"
+          git push origin HEAD:main
+
+      # goreleaser builds binaries, creates archives, and publishes the
+      # GitHub release with auto-generated notes (github-native changelog).
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: latest

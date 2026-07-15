@@ -4,7 +4,7 @@ VERSION    := $(shell \
   git describe --tags --exact-match 2>/dev/null \
   || echo "dev")
 LDFLAGS    := -s -w \
-  -X github.com/mrbrandao/ais/cmd.version=$(VERSION)
+  -X github.com/mrbrandao/mental/cmd.version=$(VERSION)
 GOFLAGS    ?= -trimpath
 
 MIN_COVERAGE ?= 60
@@ -12,10 +12,10 @@ MIN_COVERAGE ?= 60
 .PHONY: build test vet lint fmt tidy \
         coverage coverage-badge
 
-build: ## - build bin/ais binary
+build: ## - build bin/mental binary
 	@mkdir -p bin
 	go build $(GOFLAGS) \
-		-ldflags "$(LDFLAGS)" -o bin/ais .
+		-ldflags "$(LDFLAGS)" -o bin/mental .
 
 test: ## - run test suite
 	go test -race ./...

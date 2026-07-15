@@ -1,4 +1,4 @@
-IMAGE ?= ghcr.io/mrbrandao/ais
+IMAGE ?= ghcr.io/mrbrandao/mental
 TAG   ?= latest
 
 .PHONY: container-build container-binary \
@@ -9,12 +9,12 @@ container-build: ## - build container image
 
 container-binary: ## - extract binary (no Go needed)
 	podman build --target builder \
-		-t ais-builder .
+		-t mental-builder .
 	podman run --rm \
 		-v $(PWD)/bin:/out:Z \
-		ais-builder cp /ais /out/ais
+		mental-builder cp /mental /out/mental
 
-container-run: ## - run ais via container
+container-run: ## - run mental via container
 	podman run --rm \
 		-v $(HOME)/.local/share:/data:ro:Z \
 		$(IMAGE):$(TAG) $(ARGS)

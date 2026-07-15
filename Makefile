@@ -3,7 +3,7 @@ SHELL := /bin/bash
 
 .PHONY: help
 help: ## - print help and usage
-	@printf "ais — AI session manager\n\n"
+	@printf "mental — cross-session memory and AI session manager\n\n"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' \
 		$(MAKEFILE_LIST) | \
 		sed 's/^[^:]*://' | \

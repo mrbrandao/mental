@@ -1,6 +1,6 @@
 version: 2
 
-project_name: ais
+project_name: mental
 
 before:
   hooks:
@@ -8,7 +8,7 @@ before:
 
 builds:
   - main: .
-    binary: ais
+    binary: mental
     env:
       - CGO_ENABLED=0
     goos:
@@ -23,7 +23,7 @@ builds:
         goarch: arm64
     ldflags:
       - -s -w
-      - -X github.com/mrbrandao/ais/cmd.version={{.Version}}
+      - -X github.com/mrbrandao/mental/cmd.version={{.Version}}
     flags:
       - -trimpath
 
@@ -40,12 +40,8 @@ archives:
 checksum:
   name_template: checksums.txt
 
+# Use GitHub's native release notes generator.
+# This produces the same output as `gh release create --generate-notes`:
+# PR titles grouped by labels, contributor attribution, full compare link.
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
-      - Merge pull request
-      - Merge branch
+  use: github-native
