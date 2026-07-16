@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -72,9 +73,36 @@ var memLoadCmd = &cobra.Command{
 var memSaveCmd = &cobra.Command{
 	Use:   "save",
 	Short: "Save current session as a checkpoint",
+	Long: `Save reads session details from stdin and writes:
+- An updated MEMORY.md for the project
+- A new timestamped checkpoint file
+- Updated topics.yaml with new topic entries
+
+Input format (via stdin):
+  project: <name>
+  session.id: <id>
+  session.client: opencode|claude|cursor
+  session.model: <model>
+  session.dir: /path/to/project
+  topics: topic one, topic two
+  files: path/to/file.go, other/file.go
+  summary: One-sentence session description.
+  memory:
+  # <project>
+  <full MEMORY.md content>
+  ---
+  ## What We Did
+  <checkpoint body>`,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		fmt.Println("mental mem save (not yet implemented)")
-		return nil
+		cfg, mentalDir, err := loadMemConfig()
+		if err != nil {
+			return err
+		}
+		input, err := mem.ReadSaveInput(os.Stdin)
+		if err != nil {
+			return fmt.Errorf("read stdin: %w", err)
+		}
+		return mem.Save(cfg, mentalDir, input)
 	},
 }
 
