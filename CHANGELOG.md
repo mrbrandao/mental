@@ -3,6 +3,18 @@
 All notable changes to mental are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.2] - 2026-07-16
+
+### Added
+- Add -a/-p/-s save modes to mental mem save
+- Add mental.toml config with mem/session/llm defaults
+- Register built-ins and add --engine flag to mem
+- Add skills/mental/ with agentskills.io SKILL.md
+
+
+### Changed
+- Rename mem engine package to memx
+
 ## [0.1.1] - 2026-07-16
 
 ### Added
