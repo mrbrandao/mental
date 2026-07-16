@@ -1,0 +1,165 @@
+# mem.config.yaml — Memory Extension Configuration
+#
+# This file defines the complete structure of the mental memory system.
+# Changing a value here changes behaviour at runtime without recompilation.
+# The binary embeds this file as its default. To override, place your own
+# config.yaml at:
+#
+#   $MENTAL_DIR/extensions/mem/config.yaml
+#
+# Only fields you want to change need to appear in your override; all
+# other fields fall back to this default. Keys marked [REQUIRED] must
+# always be present. Keys marked [OPTIONAL] may be omitted.
+
+# ──────────────────────────────────────────────────────────────────────
+# layout — directory and file-name contract
+#
+# All paths are relative to $MENTAL_DIR (default: ~/.local/share/mental).
+# Changing a value here renames that file or directory everywhere mental
+# touches it. No code changes needed.
+# ──────────────────────────────────────────────────────────────────────
+layout:
+
+  # root is the top-level directory under $MENTAL_DIR for all projects.
+  #
+  # Example: root: "workspaces"
+  #   creates: $MENTAL_DIR/workspaces/<project>/
+  root: projects                     # [REQUIRED]
+
+  project:
+
+    # memory is the rolling summary file rewritten on every save.
+    # It is always loaded at session start — keep it under max_lines.
+    memory: MEMORY.md                # [REQUIRED]
+
+    # tasks is the task-contract file shared across sessions and agents.
+    # Updated on every mental mem task operation.
+    tasks: tasks.yaml                # [REQUIRED]
+
+    # topics is the search index mapping topic keywords to checkpoints.
+    # Appended (never rewritten) on every mental mem save.
+    topics: topics.yaml              # [REQUIRED]
+
+    checkpoints:
+
+      # dir is the subdirectory that holds one file per session.
+      dir: checkpoints               # [REQUIRED]
+
+      # format is a Go time-layout string used to name checkpoint files.
+      # See: https://pkg.go.dev/time#Layout
+      #
+      # Default produces: 2026-07-15-11-00-00.md
+      # ISO variant:      2006-01-02T15-04-05.md
+      # Date-only:        2006-01-02.md  (one file per day, overwrites)
+      #
+      # Changing this affects ONLY newly created checkpoints; existing
+      # files retain their original names.
+      format: "2006-01-02-15-04-05"  # [REQUIRED]
+
+      # ext is the file extension for checkpoint files.
+      # Must include the leading dot.
+      ext: .md                       # [REQUIRED]
+
+# ──────────────────────────────────────────────────────────────────────
+# memory — MEMORY.md structure and constraints
+#
+# MEMORY.md is the always-loaded session context. Keep it small so that
+# it consumes as few LLM context tokens as possible at session start.
+# ──────────────────────────────────────────────────────────────────────
+memory:
+
+  # max_lines is the soft limit for MEMORY.md total line count.
+  # The LLM is instructed to stay within this limit when rewriting.
+  # Increase only if your projects genuinely need more standing context.
+  max_lines: 50                      # [OPTIONAL] default: 50
+
+  # sections defines the sections that appear in MEMORY.md.
+  # Required sections must be present after every save; the save
+  # command validates their presence. Optional sections are included
+  # only when they have content.
+  #
+  # To add a new section, append an entry here. The LLM will be
+  # instructed to populate it on the next save.
+  sections:
+    - name: context       # What we are working on and current state
+      required: true
+    - name: decisions     # Key decisions made and their rationale
+      required: false
+    - name: next_steps    # Actionable items for the next session
+      required: false
+    - name: related       # Links to related projects or tasks
+      required: false
+    - name: search        # Navigation hint pointing to topics.yaml
+      required: true      # Always present — guides LLM to checkpoint index
+
+# ──────────────────────────────────────────────────────────────────────
+# checkpoint — session record structure
+#
+# Each checkpoint is a Markdown file with YAML frontmatter.
+# The frontmatter is machine-readable; the body is human-readable prose.
+# Adding a required field here causes the save command to validate it.
+# ──────────────────────────────────────────────────────────────────────
+checkpoint:
+
+  frontmatter:
+
+    # required lists YAML frontmatter fields that every checkpoint must have.
+    # The save command rejects checkpoints missing any of these.
+    #
+    # To add a new required field, append it here. Update the checkpoint
+    # writer in internal/extensions/mem/save.go to populate it.
+    required:
+      - project     # project name this checkpoint belongs to
+      - date        # ISO 8601 datetime of the session start
+      - session     # session metadata block (id, client, model, dir)
+      - topics      # list of topic keywords → populates topics.yaml
+      - files       # list of files touched during the session
+
+    # optional lists fields that may appear but are not validated.
+    optional:
+      - summary     # one-sentence session description (shown in topics.yaml)
+
+  # sections defines the Markdown body sections that follow the frontmatter.
+  # Required sections must be present in every checkpoint body.
+  # Optional sections are included when relevant.
+  #
+  # Section names must match exactly (case-sensitive).
+  sections:
+
+    required:
+      - "What We Did"     # paragraph summary of the session's work
+      - "Decisions Made"  # decisions and their rationale
+      - "Handoff"         # 1-2 sentences: exactly where to pick up next
+
+    optional:
+      - "Open Questions"  # unresolved questions for future sessions
+      - "Files Changed"   # human-readable description of what changed and why
+
+# ──────────────────────────────────────────────────────────────────────
+# tasks — task-contract structure and behaviour
+#
+# tasks.yaml holds the shared task list for a project. Any session or
+# agent can import it, update task statuses, and add new tasks.
+# ──────────────────────────────────────────────────────────────────────
+tasks:
+
+  # id_prefix is prepended to every auto-generated task ID.
+  #
+  # Change to "task-" for IDs like task-001 instead of t001.
+  # Existing IDs are not renamed when you change this.
+  id_prefix: t                       # [OPTIONAL] default: t
+
+  # id_padding is the zero-padded width of the numeric portion of IDs.
+  # 3 produces t001, t002. 4 produces t0001, t0002.
+  id_padding: 3                      # [OPTIONAL] default: 3
+
+  # statuses lists all valid task-status values.
+  # The task commands reject any status not in this list.
+  #
+  # To add a new status (e.g. "paused"), append it here.
+  # No code changes needed — the validator reads this list at runtime.
+  statuses:
+    - todo
+    - in_progress
+    - blocked
+    - done
