@@ -50,4 +50,5 @@ coverage.out
 .lola
 .superpowers
 .claude
-.opencode
+.opencode/*
+!.opencode/skills/

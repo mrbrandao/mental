@@ -3,6 +3,32 @@
 Guidance for coding agents and contributors
 working in this repository.
 
+## Memory (mental)
+
+This project uses mental for cross-session memory.
+The mental binary manages memory, tasks, and checkpoints.
+
+**At session start**, load project context:
+
+```bash
+mental mem load mental
+```
+
+**At session end**, save a checkpoint:
+
+```bash
+mental mem save < /tmp/mental-save.txt
+```
+
+**Search past sessions**:
+
+```bash
+mental mem search "<topic>" --project mental
+```
+
+See `.opencode/skills/mental/SKILL.md` for the full trigger
+vocabulary and save input format.
+
 ## What is mental
 
 `mental` is a cross-session memory and AI session manager CLI.
