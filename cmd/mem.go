@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -35,16 +36,43 @@ See: mental mem --help for available subcommands.`,
 }
 
 var memInitCmd = &cobra.Command{
-	Use:   "init <project>",
+	Use:   "init [project]",
 	Short: "Initialise memory structure for a project",
-	Args:  cobra.ExactArgs(1),
+	Long: `Initialise the memory structure for a project.
+
+If no project name is given, or "." is passed, the current
+directory name is used as the project name.
+
+Examples:
+  mental mem init           # uses current directory name
+  mental mem init .         # same as above
+  mental mem init myproject # uses "myproject"`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(_ *cobra.Command, args []string) error {
+		project, err := resolveProjectName(args)
+		if err != nil {
+			return err
+		}
 		cfg, mentalDir, err := loadMemConfig()
 		if err != nil {
 			return err
 		}
-		return memx.Init(cfg, mentalDir, args[0])
+		return memx.Init(cfg, mentalDir, project)
 	},
+}
+
+// resolveProjectName returns the project name from args.
+// If args is empty or args[0] is ".", it uses the current
+// directory name as the project name.
+func resolveProjectName(args []string) (string, error) {
+	if len(args) == 0 || args[0] == "." {
+		wd, err := os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("getwd: %w", err)
+		}
+		return filepath.Base(wd), nil
+	}
+	return args[0], nil
 }
 
 // loadMemConfig loads both the app config (for MENTAL_DIR) and
