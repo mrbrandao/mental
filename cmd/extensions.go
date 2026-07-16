@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/mrbrandao/mental/internal/config"
-	"github.com/mrbrandao/mental/internal/extensions"
+	"github.com/mrbrandao/mental/pkg/extensions"
 )
 
 // extensionsCmd is the "mental extensions" command group.

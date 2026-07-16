@@ -32,7 +32,7 @@
 //
 // # Adding an Internal Extension
 //
-//  1. Create a package under internal/extensions/<kind>/<name>/.
+//  1. Create a package under internal/extensions/<kind>/<name>/ (or pkg/extensions/ for portable engines).
 //  2. Implement the Extension interface.
 //  3. Register via Manager.Register in your package's init or New.
 //  4. Call RegisterBuiltins() from cmd/root.go at startup.

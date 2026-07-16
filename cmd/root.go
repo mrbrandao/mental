@@ -10,7 +10,7 @@ import (
 
 	"github.com/mrbrandao/mental/cmd/session"
 	"github.com/mrbrandao/mental/internal/config"
-	"github.com/mrbrandao/mental/internal/extensions"
+	"github.com/mrbrandao/mental/pkg/extensions"
 )
 
 var rootCmd = &cobra.Command{
