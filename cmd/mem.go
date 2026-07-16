@@ -56,8 +56,15 @@ var memLoadCmd = &cobra.Command{
 	Short: "Load project memory into session context",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(_ *cobra.Command, args []string) error {
-		fmt.Printf("mental mem load: %s (not yet implemented)\n",
-			args[0])
+		cfg, mentalDir, err := loadMemConfig()
+		if err != nil {
+			return err
+		}
+		ctx, err := mem.Load(cfg, mentalDir, args[0])
+		if err != nil {
+			return err
+		}
+		mem.PrintContext(ctx)
 		return nil
 	},
 }
