@@ -12,6 +12,10 @@ import (
 	"github.com/mrbrandao/mental/internal/extensions/session/opencode"
 )
 
+// memEngine is the --engine flag value. Defaults to config value (memx).
+// Set via: mental mem <subcommand> --engine <name>
+var memEngine string
+
 // memCmd is the "mental mem" command group.
 // The mem extension manages cross-session memory: checkpoints,
 // tasks, and topic-indexed search across project history.
@@ -23,6 +27,9 @@ var memCmd = &cobra.Command{
 Memory is stored under MENTAL_DIR (default: ~/.local/share/mental)
 using a plain-file protocol: MEMORY.md, tasks.yaml, topics.yaml,
 and dated checkpoint files.
+
+The --engine flag selects which memory engine to use (default: memx).
+Override permanently in $MENTAL_DIR/mental.toml: [mem] engine = "hms"
 
 See: mental mem --help for available subcommands.`,
 }
@@ -41,12 +48,30 @@ var memInitCmd = &cobra.Command{
 }
 
 // loadMemConfig loads both the app config (for MENTAL_DIR) and
-// the mem extension config. Called by all mem subcommands.
+// the memx engine config. Called by all mem subcommands.
+//
+// The --engine flag (or [mem] engine in mental.toml) selects which
+// memory engine to use. Currently only "memx" is supported built-in;
+// external engines will be routed via the extension manager.
 func loadMemConfig() (*memx.Config, string, error) {
 	appCfg, err := config.Load()
 	if err != nil {
 		return nil, "", fmt.Errorf("config: %w", err)
 	}
+
+	// Resolve engine: --engine flag > config > default.
+	engine := memEngine
+	if engine == "" {
+		engine = appCfg.MemEngine()
+	}
+	if engine != "memx" {
+		return nil, "", fmt.Errorf(
+			"engine %q not yet supported — only memx is built-in; "+
+				"install an external extension for other engines",
+			engine,
+		)
+	}
+
 	memCfg, err := memx.LoadConfig()
 	if err != nil {
 		return nil, "", fmt.Errorf("mem config: %w", err)
@@ -303,6 +328,12 @@ var memTaskListCmd = &cobra.Command{
 }
 
 func init() {
+	// --engine persistent flag on mem group — inherited by all subcommands.
+	memCmd.PersistentFlags().StringVar(
+		&memEngine, "engine", "",
+		"Memory engine to use (default from config: memx)",
+	)
+
 	// Flags for mental mem save.
 	memSaveCmd.Flags().StringVarP(
 		&saveFlagAgent, "agent", "a", "",
