@@ -18,7 +18,7 @@ func TestInit(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "test-project"); err != nil {
+		if _, err := Init(cfg, dir, "test-project"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 
@@ -41,7 +41,7 @@ func TestInit(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "my-proj"); err != nil {
+		if _, err := Init(cfg, dir, "my-proj"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 
@@ -62,10 +62,10 @@ func TestInit(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "dup"); err != nil {
+		if _, err := Init(cfg, dir, "dup"); err != nil {
 			t.Fatalf("first Init: %v", err)
 		}
-		if err := Init(cfg, dir, "dup"); err == nil {
+		if _, err := Init(cfg, dir, "dup"); err == nil {
 			t.Error("second Init should return an error")
 		}
 	})
@@ -74,7 +74,7 @@ func TestInit(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "tasks-proj"); err != nil {
+		if _, err := Init(cfg, dir, "tasks-proj"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 
@@ -95,7 +95,7 @@ func TestInit(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "layout-proj"); err != nil {
+		if _, err := Init(cfg, dir, "layout-proj"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 

@@ -9,35 +9,30 @@ import (
 )
 
 // AddTask appends a new task to tasks.yaml with an auto-generated ID.
-// The ID is generated from the configured prefix, padding, and the
-// next available sequence number.
-func AddTask(cfg *Config, mentalDir, project, title string) error {
+// Returns (taskID, nil) on success so the caller can display confirmation.
+func AddTask(cfg *Config, mentalDir, project, title string) (string, error) {
 	layout := NewLayout(cfg, mentalDir)
 
 	tasks, err := loadTasks(layout, project)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	id := nextTaskID(cfg, tasks)
-	task := Task{
+	tasks = append(tasks, Task{
 		ID:     id,
 		Title:  title,
 		Status: "todo",
-	}
-
-	tasks = append(tasks, task)
+	})
 
 	if err := saveTasks(layout, project, tasks); err != nil {
-		return err
+		return "", err
 	}
-
-	fmt.Printf("Added task #%s: %s\n", id, title)
-	return nil
+	return id, nil
 }
 
 // DoneTask marks the task with the given id as done.
-// Returns an error if the id is not found.
+// Returns ErrTaskNotFound if the id does not exist in tasks.yaml.
 func DoneTask(cfg *Config, mentalDir, project, id string) error {
 	layout := NewLayout(cfg, mentalDir)
 
@@ -57,53 +52,19 @@ func DoneTask(cfg *Config, mentalDir, project, id string) error {
 	}
 
 	if !found {
-		return fmt.Errorf("task %q not found in project %q",
-			id, project,
+		return fmt.Errorf(
+			"%w: %q in project %q", ErrTaskNotFound, id, project,
 		)
 	}
 
-	if err := saveTasks(layout, project, tasks); err != nil {
-		return err
-	}
-
-	fmt.Printf("Marked #%s as done\n", id)
-	return nil
+	return saveTasks(layout, project, tasks)
 }
 
-// ListTasks reads and prints all tasks for a project to stdout.
-func ListTasks(cfg *Config, mentalDir, project string) error {
+// ListTasks reads and returns all tasks for a project.
+// Returns (nil, nil) when the project has no tasks.
+func ListTasks(cfg *Config, mentalDir, project string) ([]Task, error) {
 	layout := NewLayout(cfg, mentalDir)
-
-	tasks, err := loadTasks(layout, project)
-	if err != nil {
-		return err
-	}
-
-	if len(tasks) == 0 {
-		fmt.Printf("No tasks for project %q\n", project)
-		return nil
-	}
-
-	fmt.Printf("Tasks for project %q:\n\n", project)
-	for _, t := range tasks {
-		marker := "[ ]"
-		if t.Status == "done" {
-			marker = "[x]"
-		}
-		fmt.Printf("%s #%s %s (%s)\n",
-			marker, t.ID, t.Title, t.Status,
-		)
-		for _, sub := range t.Subtasks {
-			subMarker := "  [ ]"
-			if sub.Status == "done" {
-				subMarker = "  [x]"
-			}
-			fmt.Printf("%s #%s %s\n",
-				subMarker, sub.ID, sub.Title,
-			)
-		}
-	}
-	return nil
+	return loadTasks(layout, project)
 }
 
 // loadTasks reads and parses tasks.yaml for a project.
@@ -111,8 +72,7 @@ func loadTasks(l *Layout, project string) ([]Task, error) {
 	data, err := os.ReadFile(l.TasksFile(project))
 	if err != nil {
 		return nil, fmt.Errorf(
-			"read tasks for %q: %w — run mental mem init first",
-			project, err,
+			"read tasks for %q: %w", project, err,
 		)
 	}
 	var tf TasksFile
@@ -147,10 +107,5 @@ func nextTaskID(cfg *Config, tasks []Task) string {
 		}
 	}
 
-	format := fmt.Sprintf(
-		"%s%%0%dd",
-		prefix,
-		cfg.Tasks.IDPadding,
-	)
-	return fmt.Sprintf(format, max+1)
+	return fmt.Sprintf("%s%0*d", prefix, cfg.Tasks.IDPadding, max+1)
 }

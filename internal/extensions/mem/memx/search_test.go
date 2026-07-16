@@ -18,7 +18,7 @@ func TestSearch(t *testing.T) {
 		dir := t.TempDir()
 		project := "search-proj"
 
-		if err := Init(cfg, dir, project); err != nil {
+		if _, err := Init(cfg, dir, project); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 
@@ -48,7 +48,7 @@ func TestSearch(t *testing.T) {
 				Summary: "Schema finalized.",
 			},
 		} {
-			if err := Save(cfg, dir, input); err != nil {
+			if _, err := Save(cfg, dir, input); err != nil {
 				t.Fatalf("Save: %v", err)
 			}
 		}
@@ -120,7 +120,7 @@ func TestSearch(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "empty"); err != nil {
+		if _, err := Init(cfg, dir, "empty"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 

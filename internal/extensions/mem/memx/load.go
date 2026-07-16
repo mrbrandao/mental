@@ -3,7 +3,6 @@ package memx
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -30,36 +29,7 @@ func Load(cfg *Config, mentalDir, project string) (*ProjectContext, error) {
 	}, nil
 }
 
-// PrintContext writes a formatted context block to stdout.
-// This is the output the LLM reads at session start.
-func PrintContext(ctx *ProjectContext) {
-	fmt.Printf("=== mental: project %q ===\n\n", ctx.Project)
-	fmt.Println(strings.TrimSpace(ctx.Memory))
-
-	if len(ctx.Tasks) == 0 {
-		return
-	}
-
-	fmt.Printf("\n=== tasks ===\n")
-	for _, t := range ctx.Tasks {
-		marker := "[ ]"
-		if t.Status == "done" {
-			marker = "[x]"
-		}
-		fmt.Printf("%s #%s %s (%s)\n",
-			marker, t.ID, t.Title, t.Status,
-		)
-		for _, sub := range t.Subtasks {
-			subMarker := "  [ ]"
-			if sub.Status == "done" {
-				subMarker = "  [x]"
-			}
-			fmt.Printf("%s #%s %s\n",
-				subMarker, sub.ID, sub.Title,
-			)
-		}
-	}
-}
+// PrintContext is removed — callers use cmd/ pterm rendering instead.
 
 // readMemory reads MEMORY.md content for a project.
 func readMemory(l *Layout, project string) (string, error) {

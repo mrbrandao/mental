@@ -39,31 +39,27 @@ const topicsTemplate = `memory: []
 `
 
 // Init creates the project directory structure under mentalDir.
-// Returns an error if the project already exists.
-func Init(cfg *Config, mentalDir, project string) error {
+// Returns (projectDir, nil) on success so the caller can display
+// confirmation. Returns ErrProjectExists if the directory already exists.
+func Init(cfg *Config, mentalDir, project string) (string, error) {
 	layout := NewLayout(cfg, mentalDir)
 	projectDir := layout.ProjectDir(project)
 
 	if _, err := os.Stat(projectDir); err == nil {
-		return fmt.Errorf(
-			"project %q already exists at %s",
-			project, projectDir,
+		return "", fmt.Errorf(
+			"%w: %s", ErrProjectExists, projectDir,
 		)
 	}
 
 	if err := layout.EnsureProjectDirs(project); err != nil {
-		return fmt.Errorf("create directories: %w", err)
+		return "", fmt.Errorf("create directories: %w", err)
 	}
 
 	if err := writeInitialFiles(layout, project); err != nil {
-		return fmt.Errorf("write initial files: %w", err)
+		return "", fmt.Errorf("write initial files: %w", err)
 	}
 
-	fmt.Printf(
-		"Initialised project %q at %s\n",
-		project, projectDir,
-	)
-	return nil
+	return projectDir, nil
 }
 
 // writeInitialFiles writes MEMORY.md, tasks.yaml, and topics.yaml.

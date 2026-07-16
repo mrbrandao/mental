@@ -42,9 +42,7 @@ func Search(
 	var results []SearchResult
 	for _, entry := range tf.Memory {
 		if matchesTopics(entry.Topics, q) ||
-			strings.Contains(
-				strings.ToLower(entry.Summary), q,
-			) {
+			strings.Contains(strings.ToLower(entry.Summary), q) {
 			results = append(results, SearchResult{
 				Checkpoint: entry.Checkpoint,
 				Name:       entry.Name,
@@ -54,33 +52,6 @@ func Search(
 		}
 	}
 	return results, nil
-}
-
-// PrintSearchResults writes search results to stdout in a format
-// the LLM can read to decide which checkpoint to load.
-func PrintSearchResults(results []SearchResult, query string) {
-	if len(results) == 0 {
-		fmt.Printf("No checkpoints found for %q\n", query)
-		return
-	}
-
-	fmt.Printf("Found %d checkpoint(s) for %q:\n\n", len(results), query)
-	for i, r := range results {
-		fmt.Printf("%d. %s\n", i+1, r.Checkpoint)
-		if r.Summary != "" {
-			fmt.Printf("   Summary: %s\n", r.Summary)
-		}
-		if len(r.Topics) > 0 {
-			fmt.Printf(
-				"   Topics:  %s\n",
-				strings.Join(r.Topics, ", "),
-			)
-		}
-		fmt.Println()
-	}
-	fmt.Println(
-		"Load a checkpoint with: mental mem load <project>",
-	)
 }
 
 // matchesTopics returns true if any topic contains the query substring.

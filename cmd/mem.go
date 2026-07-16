@@ -59,7 +59,14 @@ Examples:
 		if err != nil {
 			return err
 		}
-		return memx.Init(cfg, mentalDir, project)
+		path, err := memx.Init(cfg, mentalDir, project)
+		if err != nil {
+			return err
+		}
+		pterm.Success.Printfln(
+			"Initialised %q at %s", project, path,
+		)
+		return nil
 	},
 }
 
@@ -122,7 +129,7 @@ var memLoadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		memx.PrintContext(ctx)
+		printContext(ctx)
 		return nil
 	},
 }
@@ -207,7 +214,12 @@ func runSave(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("read stdin: %w", err)
 	}
-	return memx.Save(cfg, mentalDir, input)
+	cpPath, err := memx.Save(cfg, mentalDir, input)
+	if err != nil {
+		return err
+	}
+	pterm.Success.Printfln("Saved checkpoint: %s", cpPath)
+	return nil
 }
 
 // runSaveProvider extracts session data from the named provider and either
@@ -289,7 +301,15 @@ func saveRawCheckpoint(
 		return fmt.Errorf("ensure project dirs: %w", err)
 	}
 
-	return memx.RawSave(cfg, mentalDir, input)
+	cpPath, err := memx.RawSave(cfg, mentalDir, input)
+	if err != nil {
+		return err
+	}
+	pterm.Success.Printfln("Saved raw checkpoint: %s", cpPath)
+	pterm.Info.Println(
+		"MEMORY.md not updated — use -p flag with an LLM for synthesis",
+	)
+	return nil
 }
 
 var memSearchCmd = &cobra.Command{
@@ -309,7 +329,7 @@ var memSearchCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		memx.PrintSearchResults(results, args[0])
+		printSearchResults(results, args[0])
 		return nil
 	},
 }
@@ -333,9 +353,16 @@ var memTaskAddCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return memx.AddTask(cfg, mentalDir, project,
+		id, err := memx.AddTask(cfg, mentalDir, project,
 			strings.Join(args, " "),
 		)
+		if err != nil {
+			return err
+		}
+		pterm.Success.Printfln(
+			"Added #%s: %s", id, strings.Join(args, " "),
+		)
+		return nil
 	},
 }
 
@@ -352,7 +379,11 @@ var memTaskDoneCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return memx.DoneTask(cfg, mentalDir, project, args[0])
+		if err := memx.DoneTask(cfg, mentalDir, project, args[0]); err != nil {
+			return err
+		}
+		pterm.Success.Printfln("Marked #%s as done", args[0])
+		return nil
 	},
 }
 
@@ -368,7 +399,12 @@ var memTaskListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return memx.ListTasks(cfg, mentalDir, project)
+		tasks, err := memx.ListTasks(cfg, mentalDir, project)
+		if err != nil {
+			return err
+		}
+		printTaskList(project, tasks)
+		return nil
 	},
 }
 
@@ -430,4 +466,87 @@ func init() {
 	memCmd.AddCommand(memTaskCmd)
 
 	rootCmd.AddCommand(memCmd)
+}
+
+// printContext renders a ProjectContext to stdout using pterm.
+func printContext(ctx *memx.ProjectContext) {
+	pterm.DefaultHeader.WithFullWidth().
+		Printfln("project: %s", ctx.Project)
+	pterm.Println(strings.TrimSpace(ctx.Memory))
+
+	if len(ctx.Tasks) == 0 {
+		return
+	}
+	pterm.Println()
+	printTaskList(ctx.Project, ctx.Tasks)
+}
+
+// printTaskList renders a task list to stdout using pterm.
+func printTaskList(project string, tasks []memx.Task) {
+	if len(tasks) == 0 {
+		pterm.Info.Printfln("No tasks for project %q", project)
+		return
+	}
+	pterm.DefaultSection.Printfln("Tasks — %s", project)
+	data := pterm.TableData{{"STATUS", "ID", "TITLE"}}
+	for _, t := range tasks {
+		status := pterm.FgGray.Sprint("[ ]")
+		if t.Status == "done" {
+			status = pterm.FgGreen.Sprint("[x]")
+		} else if t.Status == "in_progress" {
+			status = pterm.FgYellow.Sprint("[~]")
+		} else if t.Status == "blocked" {
+			status = pterm.FgRed.Sprint("[!]")
+		}
+		data = append(data, []string{
+			status,
+			pterm.FgGray.Sprint("#" + t.ID),
+			t.Title + pterm.FgGray.Sprintf(" (%s)", t.Status),
+		})
+		for _, sub := range t.Subtasks {
+			subStatus := pterm.FgGray.Sprint("  [ ]")
+			if sub.Status == "done" {
+				subStatus = pterm.FgGreen.Sprint("  [x]")
+			}
+			data = append(data, []string{
+				subStatus,
+				pterm.FgGray.Sprint("  #" + sub.ID),
+				pterm.FgGray.Sprint(sub.Title),
+			})
+		}
+	}
+	if err := pterm.DefaultTable.WithHasHeader().WithData(data).Render(); err != nil {
+		fmt.Fprintf(os.Stderr, "table render: %v\n", err)
+	}
+}
+
+// printSearchResults renders mem search results using pterm.
+func printSearchResults(results []memx.SearchResult, query string) {
+	if len(results) == 0 {
+		pterm.Info.Printfln("No checkpoints found for %q", query)
+		return
+	}
+	pterm.DefaultHeader.WithFullWidth().
+		Printfln("Found %d checkpoint(s) for %q", len(results), query)
+
+	data := pterm.TableData{{"#", "CHECKPOINT", "SUMMARY", "TOPICS"}}
+	for i, r := range results {
+		topics := strings.Join(r.Topics, ", ")
+		if len(topics) > 30 {
+			topics = topics[:27] + "…"
+		}
+		data = append(data, []string{
+			fmt.Sprintf("%d", i+1),
+			pterm.FgLightCyan.Sprint(r.Checkpoint),
+			r.Summary,
+			pterm.FgGray.Sprint(topics),
+		})
+	}
+	if err := pterm.DefaultTable.WithHasHeader().WithData(data).Render(); err != nil {
+		fmt.Fprintf(os.Stderr, "table render: %v\n", err)
+	}
+	pterm.Println()
+	pterm.Info.Println(
+		"Load a specific checkpoint: mental mem load <project>",
+	)
 }

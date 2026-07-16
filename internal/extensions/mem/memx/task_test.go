@@ -14,14 +14,14 @@ func TestAddTask(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "proj"); err != nil {
+		if _, err := Init(cfg, dir, "proj"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 
-		if err := AddTask(cfg, dir, "proj", "First task"); err != nil {
+		if _, err := AddTask(cfg, dir, "proj", "First task"); err != nil {
 			t.Fatalf("AddTask: %v", err)
 		}
-		if err := AddTask(cfg, dir, "proj", "Second task"); err != nil {
+		if _, err := AddTask(cfg, dir, "proj", "Second task"); err != nil {
 			t.Fatalf("AddTask: %v", err)
 		}
 
@@ -58,10 +58,10 @@ func TestDoneTask(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "proj"); err != nil {
+		if _, err := Init(cfg, dir, "proj"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
-		if err := AddTask(cfg, dir, "proj", "A task"); err != nil {
+		if _, err := AddTask(cfg, dir, "proj", "A task"); err != nil {
 			t.Fatalf("AddTask: %v", err)
 		}
 		if err := DoneTask(cfg, dir, "proj", "t001"); err != nil {
@@ -82,7 +82,7 @@ func TestDoneTask(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "proj"); err != nil {
+		if _, err := Init(cfg, dir, "proj"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 		if err := DoneTask(cfg, dir, "proj", "t999"); err == nil {

@@ -25,12 +25,13 @@ type SaveInput struct {
 }
 
 // RawSave writes a checkpoint file and updates topics.yaml without
-// touching MEMORY.md. Use this for provider-extracted checkpoints where
-// no LLM synthesis is available. The caller must ensure the project
-// directory exists before calling (use Layout.EnsureProjectDirs).
-func RawSave(cfg *Config, mentalDir string, input SaveInput) error {
+// touching MEMORY.md. Returns the checkpoint path on success.
+// Use this for provider-extracted checkpoints where no LLM synthesis
+// is available. The caller must ensure the project directory exists
+// (use Layout.EnsureProjectDirs).
+func RawSave(cfg *Config, mentalDir string, input SaveInput) (string, error) {
 	if err := validateInput(cfg, input); err != nil {
-		return fmt.Errorf("invalid save input: %w", err)
+		return "", fmt.Errorf("invalid save input: %w", err)
 	}
 
 	layout := NewLayout(cfg, mentalDir)
@@ -38,59 +39,50 @@ func RawSave(cfg *Config, mentalDir string, input SaveInput) error {
 
 	cpPath := layout.CheckpointFile(input.Project, now)
 	if err := writeCheckpoint(cpPath, input, now); err != nil {
-		return fmt.Errorf("write checkpoint: %w", err)
+		return "", fmt.Errorf("write checkpoint: %w", err)
 	}
 
 	if err := appendTopics(layout, input, cpPath); err != nil {
-		return fmt.Errorf("update topics: %w", err)
+		return "", fmt.Errorf("update topics: %w", err)
 	}
 
-	fmt.Printf(
-		"Saved raw checkpoint: %s\n"+
-			"Note: MEMORY.md was not updated. "+
-			"Use -p flag to generate a prompt for LLM synthesis.\n",
-		cpPath,
-	)
-	return nil
+	return cpPath, nil
 }
 
 // Save rewrites MEMORY.md, writes a new checkpoint file, and
-// appends new topic entries to topics.yaml.
+// appends new topic entries to topics.yaml. Returns the checkpoint
+// path on success so the caller can display confirmation.
 //
 // The caller provides a SaveInput with the session details and the
 // LLM-authored content. Save validates required fields per the config
 // before writing any file.
-func Save(cfg *Config, mentalDir string, input SaveInput) error {
+func Save(cfg *Config, mentalDir string, input SaveInput) (string, error) {
 	if err := validateInput(cfg, input); err != nil {
-		return fmt.Errorf("invalid save input: %w", err)
+		return "", fmt.Errorf("invalid save input: %w", err)
 	}
 
 	layout := NewLayout(cfg, mentalDir)
 
 	if err := layout.EnsureProjectDirs(input.Project); err != nil {
-		return fmt.Errorf("ensure dirs: %w", err)
+		return "", fmt.Errorf("ensure dirs: %w", err)
 	}
 
 	now := time.Now().UTC()
 
 	if err := writeMemory(layout, input, now); err != nil {
-		return fmt.Errorf("write memory: %w", err)
+		return "", fmt.Errorf("write memory: %w", err)
 	}
 
 	cpPath := layout.CheckpointFile(input.Project, now)
 	if err := writeCheckpoint(cpPath, input, now); err != nil {
-		return fmt.Errorf("write checkpoint: %w", err)
+		return "", fmt.Errorf("write checkpoint: %w", err)
 	}
 
 	if err := appendTopics(layout, input, cpPath); err != nil {
-		return fmt.Errorf("update topics: %w", err)
+		return "", fmt.Errorf("update topics: %w", err)
 	}
 
-	fmt.Printf(
-		"Saved checkpoint: %s\n",
-		layout.CheckpointFile(input.Project, now),
-	)
-	return nil
+	return cpPath, nil
 }
 
 // ReadSaveInput parses a save payload from r.

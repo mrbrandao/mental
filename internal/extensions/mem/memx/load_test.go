@@ -17,7 +17,7 @@ func TestLoad(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "proj"); err != nil {
+		if _, err := Init(cfg, dir, "proj"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 
@@ -47,7 +47,7 @@ func TestLoad(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "task-proj"); err != nil {
+		if _, err := Init(cfg, dir, "task-proj"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 

@@ -33,11 +33,11 @@ func TestSave(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "proj"); err != nil {
+		if _, err := Init(cfg, dir, "proj"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 
-		if err := Save(cfg, dir, validInput("proj")); err != nil {
+		if _, err := Save(cfg, dir, validInput("proj")); err != nil {
 			t.Fatalf("Save: %v", err)
 		}
 
@@ -55,11 +55,11 @@ func TestSave(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "front"); err != nil {
+		if _, err := Init(cfg, dir, "front"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 
-		if err := Save(cfg, dir, validInput("front")); err != nil {
+		if _, err := Save(cfg, dir, validInput("front")); err != nil {
 			t.Fatalf("Save: %v", err)
 		}
 
@@ -83,11 +83,11 @@ func TestSave(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		if err := Init(cfg, dir, "topics"); err != nil {
+		if _, err := Init(cfg, dir, "topics"); err != nil {
 			t.Fatalf("Init: %v", err)
 		}
 
-		if err := Save(cfg, dir, validInput("topics")); err != nil {
+		if _, err := Save(cfg, dir, validInput("topics")); err != nil {
 			t.Fatalf("Save: %v", err)
 		}
 
@@ -107,13 +107,13 @@ func TestSave(t *testing.T) {
 
 		input := validInput("validate")
 		input.Project = ""
-		if err := Save(cfg, dir, input); err == nil {
+		if _, err := Save(cfg, dir, input); err == nil {
 			t.Error("Save should error on empty project")
 		}
 
 		input = validInput("validate")
 		input.Topics = nil
-		if err := Save(cfg, dir, input); err == nil {
+		if _, err := Save(cfg, dir, input); err == nil {
 			t.Error("Save should error on empty topics")
 		}
 	})
