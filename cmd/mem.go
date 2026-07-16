@@ -4,6 +4,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+
+	"github.com/mrbrandao/mental/internal/config"
+	"github.com/mrbrandao/mental/internal/extensions/mem"
 )
 
 // memCmd is the "mental mem" command group.
@@ -26,10 +29,26 @@ var memInitCmd = &cobra.Command{
 	Short: "Initialise memory structure for a project",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(_ *cobra.Command, args []string) error {
-		fmt.Printf("mental mem init: %s (not yet implemented)\n",
-			args[0])
-		return nil
+		cfg, mentalDir, err := loadMemConfig()
+		if err != nil {
+			return err
+		}
+		return mem.Init(cfg, mentalDir, args[0])
 	},
+}
+
+// loadMemConfig loads both the app config (for MENTAL_DIR) and
+// the mem extension config. Called by all mem subcommands.
+func loadMemConfig() (*mem.Config, string, error) {
+	appCfg, err := config.Load()
+	if err != nil {
+		return nil, "", fmt.Errorf("config: %w", err)
+	}
+	memCfg, err := mem.LoadConfig()
+	if err != nil {
+		return nil, "", fmt.Errorf("mem config: %w", err)
+	}
+	return memCfg, appCfg.Dir(), nil
 }
 
 var memLoadCmd = &cobra.Command{
