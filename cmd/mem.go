@@ -9,6 +9,7 @@ import (
 
 	"github.com/mrbrandao/mental/internal/config"
 	"github.com/mrbrandao/mental/internal/extensions/mem"
+	"github.com/mrbrandao/mental/internal/extensions/session/opencode"
 )
 
 // memCmd is the "mental mem" command group.
@@ -74,12 +75,25 @@ var memLoadCmd = &cobra.Command{
 var memSaveCmd = &cobra.Command{
 	Use:   "save",
 	Short: "Save current session as a checkpoint",
-	Long: `Save reads session details from stdin and writes:
-- An updated MEMORY.md for the project
-- A new timestamped checkpoint file
-- Updated topics.yaml with new topic entries
+	Long: `Save has three modes selected by flags:
 
-Input format (via stdin):
+STDIN MODE (default — used by skills and LLM pipes):
+  Reads the structured save block from stdin.
+  mental mem save < /tmp/checkpoint.txt
+  mental mem save -a opencode -s <id> -p | claude -p | mental mem save
+
+PROVIDER MODE (-a and -s flags):
+  Extracts session data from an AI provider and writes a raw checkpoint.
+  mental mem save -a opencode -s <session-id>
+  mental mem save -a opencode -s <session-id> --project myproject
+
+PRINT MODE (-p flag, requires -a and -s):
+  Prints an LLM prompt to stdout instead of saving. Pipe to any LLM CLI.
+  mental mem save -a opencode -s <session-id> -p | claude -p
+  mental mem save -a opencode -s <session-id> -p | ollama run llama3
+  mental mem save -a opencode -s <session-id> -p | claude -p | mental mem save
+
+Stdin format (STDIN MODE):
   project: <name>
   session.id: <id>
   session.client: opencode|claude|cursor
@@ -94,17 +108,118 @@ Input format (via stdin):
   ---
   ## What We Did
   <checkpoint body>`,
-	RunE: func(_ *cobra.Command, _ []string) error {
-		cfg, mentalDir, err := loadMemConfig()
+	RunE: runSave,
+}
+
+// saveFlagAgent is the agent/provider name (-a flag).
+// Multiple aliases: --agent, --assistant, --provider all work.
+var saveFlagAgent string
+
+// saveFlagSession is the session ID (-s flag).
+var saveFlagSession string
+
+// saveFlagPrint enables print mode: output LLM prompt to stdout (-p flag).
+var saveFlagPrint bool
+
+// saveFlagProject overrides the project name (inferred from session dir if omitted).
+var saveFlagProject string
+
+// runSave dispatches to the correct save mode based on flags.
+func runSave(cmd *cobra.Command, _ []string) error {
+	cfg, mentalDir, err := loadMemConfig()
+	if err != nil {
+		return err
+	}
+
+	// Provider mode: -a and -s are both set.
+	if saveFlagAgent != "" && saveFlagSession != "" {
+		return runSaveProvider(cfg, mentalDir)
+	}
+
+	// Stdin mode: no provider flags — read structured block from stdin.
+	// Return a clear error if stdin is a terminal (would hang).
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) != 0 {
+		return fmt.Errorf(
+			"stdin is a terminal and no provider flags are set\n\n" +
+				"Use provider mode:  mental mem save -a opencode -s <session-id>\n" +
+				"Use print mode:     mental mem save -a opencode -s <id> -p | claude -p\n" +
+				"Use stdin mode:     mental mem save < /tmp/checkpoint.txt",
+		)
+	}
+
+	input, err := mem.ReadSaveInput(os.Stdin)
+	if err != nil {
+		return fmt.Errorf("read stdin: %w", err)
+	}
+	return mem.Save(cfg, mentalDir, input)
+}
+
+// runSaveProvider extracts session data from the named provider and either
+// prints an LLM prompt (-p) or writes a raw checkpoint directly.
+func runSaveProvider(cfg *mem.Config, mentalDir string) error {
+	switch saveFlagAgent {
+	case "opencode":
+		input, err := opencode.Extract(
+			saveFlagSession,
+			saveFlagProject,
+			"", // use default DB path
+			"", // use default diff dir
+		)
 		if err != nil {
-			return err
+			return fmt.Errorf("extract session: %w", err)
 		}
-		input, err := mem.ReadSaveInput(os.Stdin)
-		if err != nil {
-			return fmt.Errorf("read stdin: %w", err)
+
+		// Print mode: output LLM prompt for piping.
+		if saveFlagPrint {
+			fmt.Print(mem.GeneratePrompt(input))
+			return nil
 		}
-		return mem.Save(cfg, mentalDir, input)
-	},
+
+			// Raw checkpoint mode: write without LLM synthesis.
+		return saveRawCheckpoint(cfg, mentalDir, input)
+
+	default:
+		return fmt.Errorf(
+			"unknown provider %q — supported: opencode",
+			saveFlagAgent,
+		)
+	}
+}
+
+// saveRawCheckpoint writes a minimal checkpoint from provider-extracted data.
+// It does NOT update MEMORY.md (requires LLM synthesis for quality).
+// It DOES update topics.yaml so raw checkpoints are searchable.
+func saveRawCheckpoint(
+	cfg *mem.Config,
+	mentalDir string,
+	input mem.SaveInput,
+) error {
+	// Build a raw checkpoint body that is honest about its origin.
+	input.Body = fmt.Sprintf(
+		"## Session Snapshot\n\n"+
+			"Source: %s session %s\n"+
+			"Summary: %s\n\n"+
+			"## What We Did\n\n"+
+			"Raw checkpoint from %s session. "+
+			"Run `mental mem save -a %s -s %s -p | <llm>` "+
+			"to generate a synthesized checkpoint.\n\n"+
+			"## Handoff\n\n"+
+			"Resume from: %s\n",
+		input.Session.Client, input.Session.ID,
+		input.Summary,
+		input.Session.Client,
+		input.Session.Client, input.Session.ID,
+		input.Session.Dir,
+	)
+
+	// Ensure the project directory exists (auto-init for raw mode).
+	if err := mem.NewLayout(cfg, mentalDir).
+		EnsureProjectDirs(input.Project); err != nil {
+		return fmt.Errorf("ensure project dirs: %w", err)
+	}
+
+	return mem.RawSave(cfg, mentalDir, input)
 }
 
 var memSearchCmd = &cobra.Command{
@@ -188,6 +303,29 @@ var memTaskListCmd = &cobra.Command{
 }
 
 func init() {
+	// Flags for mental mem save.
+	memSaveCmd.Flags().StringVarP(
+		&saveFlagAgent, "agent", "a", "",
+		"AI provider to extract session from (opencode, ...)",
+	)
+	// Aliases: --assistant and --provider map to the same variable.
+	memSaveCmd.Flags().StringVar(&saveFlagAgent, "assistant", "",
+		"alias for --agent")
+	memSaveCmd.Flags().StringVar(&saveFlagAgent, "provider", "",
+		"alias for --agent")
+	memSaveCmd.Flags().StringVarP(
+		&saveFlagSession, "session", "s", "",
+		"Session ID to extract (requires --agent)",
+	)
+	memSaveCmd.Flags().BoolVarP(
+		&saveFlagPrint, "print", "p", false,
+		"Print LLM prompt to stdout instead of saving",
+	)
+	memSaveCmd.Flags().StringVar(
+		&saveFlagProject, "project", "",
+		"Project name (inferred from session directory if omitted)",
+	)
+
 	// --project flag required for all task subcommands.
 	for _, cmd := range []*cobra.Command{
 		memTaskAddCmd, memTaskDoneCmd, memTaskListCmd,

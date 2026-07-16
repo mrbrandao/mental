@@ -24,6 +24,36 @@ type SaveInput struct {
 	Body    string // checkpoint Markdown body (after frontmatter)
 }
 
+// RawSave writes a checkpoint file and updates topics.yaml without
+// touching MEMORY.md. Use this for provider-extracted checkpoints where
+// no LLM synthesis is available. The caller must ensure the project
+// directory exists before calling (use Layout.EnsureProjectDirs).
+func RawSave(cfg *Config, mentalDir string, input SaveInput) error {
+	if err := validateInput(cfg, input); err != nil {
+		return fmt.Errorf("invalid save input: %w", err)
+	}
+
+	layout := NewLayout(cfg, mentalDir)
+	now := time.Now().UTC()
+
+	cpPath := layout.CheckpointFile(input.Project, now)
+	if err := writeCheckpoint(cpPath, input, now); err != nil {
+		return fmt.Errorf("write checkpoint: %w", err)
+	}
+
+	if err := appendTopics(layout, input, cpPath); err != nil {
+		return fmt.Errorf("update topics: %w", err)
+	}
+
+	fmt.Printf(
+		"Saved raw checkpoint: %s\n"+
+			"Note: MEMORY.md was not updated. "+
+			"Use -p flag to generate a prompt for LLM synthesis.\n",
+		cpPath,
+	)
+	return nil
+}
+
 // Save rewrites MEMORY.md, writes a new checkpoint file, and
 // appends new topic entries to topics.yaml.
 //

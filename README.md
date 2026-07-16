@@ -1,4 +1,4 @@
-# mental — cross-session memory and AI session manager
+# mental — AI Session Manager
 
 ![CI](https://github.com/mrbrandao/mental/actions/workflows/ci.yml/badge.svg)
 ![Release](https://img.shields.io/github/v/release/mrbrandao/mental)
@@ -6,9 +6,9 @@
 ![License](https://img.shields.io/github/license/mrbrandao/mental)
 ![Coverage](https://img.shields.io/badge/coverage-35.0%-lightgrey)
 
-Cross-session memory management and AI session search for LLM workflows.
-mental persists context across sessions, tracks tasks, and lets multiple
-agents share knowledge through a simple file-based protocol.
+mental manages AI assistant sessions: search session history and manage
+session context memory across sessions and providers. Extensible via
+built-in and external extensions.
 
 ## Install
 
@@ -31,31 +31,67 @@ make container-binary   # extracts bin/mental via podman
 
 ## Quick start
 
+### Session search
+
 ```bash
 # Search OpenCode sessions
-mental search -a opencode -s "my topic"
-
-# Multiple search terms
-mental search -a opencode -s "topic" -s "branch-name"
+mental session search -a opencode -s "my topic"
 
 # Deep search (scans message content)
-mental search -a opencode --type=deep --branch feat/my-branch
+mental session search -a opencode --type=deep --branch feat/my-branch
 
-# Filter by directory
-mental search -a opencode --dir /path/to/project
-
-# JSON output
-mental search -a opencode -s "topic" --output json
+# Filter by directory, JSON output
+mental session search -a opencode --dir /path/to/project --output json
 ```
 
-## Supported assistants
+### Memory management
 
-| Assistant | Status    |
-|-----------|-----------|
-| opencode  | supported |
-| claude    | planned   |
-| gemini    | planned   |
-| cursor    | planned   |
+```bash
+# Initialise memory for a project
+mental mem init myproject
+
+# Load context at session start (used by skills/LLMs)
+mental mem load myproject
+
+# Save checkpoint — three modes:
+
+# 1. Stdin mode (used by skills and LLM pipes)
+mental mem save < /tmp/checkpoint.txt
+
+# 2. Provider mode: raw checkpoint from OpenCode session (no LLM needed)
+mental mem save -a opencode -s <session-id>
+
+# 3. Print mode: generate LLM prompt, pipe to any LLM
+mental mem save -a opencode -s <session-id> -p | claude -p
+mental mem save -a opencode -s <session-id> -p | ollama run llama3
+
+# Full synthesis pipeline
+mental mem save -a opencode -s <session-id> -p | claude -p | mental mem save
+
+# Search past sessions by topic
+mental mem search "rollback strategy" --project myproject
+
+# Task management
+mental mem task add --project myproject "Write rollback script"
+mental mem task list --project myproject
+mental mem task done --project myproject t001
+```
+
+### Extensions
+
+```bash
+# List installed extensions (built-in + external)
+mental extensions list
+mental extensions describe opencode
+```
+
+## Supported providers
+
+| Provider | Session search | Memory extract | Status    |
+|----------|---------------|----------------|-----------|
+| opencode | supported     | supported      | built-in  |
+| claude   | —             | —              | planned   |
+| cursor   | —             | —              | planned   |
 
 ## Build from source
 
