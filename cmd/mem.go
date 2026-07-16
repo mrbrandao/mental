@@ -110,9 +110,20 @@ var memSearchCmd = &cobra.Command{
 	Use:   "search <topic>",
 	Short: "Search topics index for matching checkpoints",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(_ *cobra.Command, args []string) error {
-		fmt.Printf("mental mem search: %q (not yet implemented)\n",
-			args[0])
+	RunE: func(cmd *cobra.Command, args []string) error {
+		project, err := cmd.Flags().GetString("project")
+		if err != nil {
+			return err
+		}
+		cfg, mentalDir, err := loadMemConfig()
+		if err != nil {
+			return err
+		}
+		results, err := mem.Search(cfg, mentalDir, project, args[0])
+		if err != nil {
+			return err
+		}
+		mem.PrintSearchResults(results, args[0])
 		return nil
 	},
 }
@@ -158,6 +169,12 @@ func init() {
 	memTaskCmd.AddCommand(memTaskAddCmd)
 	memTaskCmd.AddCommand(memTaskDoneCmd)
 	memTaskCmd.AddCommand(memTaskListCmd)
+
+	memSearchCmd.Flags().String(
+		"project", "",
+		"Project to search (required)",
+	)
+	_ = memSearchCmd.MarkFlagRequired("project")
 
 	memCmd.AddCommand(memInitCmd)
 	memCmd.AddCommand(memLoadCmd)
